@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Flip Board - 3D Snapchat Web Lens Memory Game</title>
+  <meta name="description" content="A fast-paced 3D memory-matching game on a 4x4 grid. Match 8 pairs before the 60s clock runs out, build streaks, unlock categories and skins, and conquer friend leaderboards!">
+  <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+  <!-- 9:16 Vertical Portrait App Container -->
+  <main id="app-container" role="main" aria-label="Flip Board Game Application">
+    <h1 class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Flip Board - 3D Snapchat Web Lens</h1>
+
+    <!-- PlayCanvas 3D WebGL Canvas -->
+    <canvas id="playcanvas-canvas" aria-label="3D Interactive Memory Board"></canvas>
+
+    <!-- In-Game Top & Bottom HUD -->
+    <div id="in-game-hud" class="hidden">
+      <!-- Top Zone (20%) -->
+      <header class="top-zone" role="banner">
+        <div id="spectator-bitmoji" title="Tap to interact with your Bitmoji spectator" role="button" tabindex="0" aria-label="Player Bitmoji Spectator">
+          <!-- Populated by ui.js -->
+        </div>
+
+        <div class="timer-container" aria-live="polite">
+          <span class="timer-label">Time Remaining</span>
+          <div id="timer-display">60.0</div>
+        </div>
+
+        <div id="flips-display" class="flips-badge" aria-label="Total Flips Counter">
+          Flips: 0
+        </div>
+      </header>
+
+      <!-- Bottom Zone (15%) -->
+      <footer class="bottom-zone" role="contentinfo">
+        <div id="streak-badge" class="hidden" aria-live="assertive">
+          <span>🔥 STREAK x2</span> <small>(+250 pts)</small>
+        </div>
+
+        <button id="restart-btn" type="button" aria-label="Quick Restart Round">
+          <span>↺</span> Restart PB
+        </button>
+      </footer>
+    </div>
+
+    <!-- Pre-Game Category Carousel Overlay -->
+    <section id="pregame-carousel-modal" class="overlay-modal" aria-label="Category Selection Carousel">
+      <div id="carousel-card" class="carousel-content">
+        <div class="carousel-header">
+          <div class="carousel-title-group">
+            <span id="cat-theme" class="cat-theme-subtitle">Safari / Jungle</span>
+            <h2 id="cat-name">Animals</h2>
+          </div>
+          <span id="cat-status-badge" class="status-badge unlocked">READY TO PLAY</span>
+        </div>
+
+        <p id="cat-desc" class="cat-desc">High-contrast friendly safari creatures & bamboo totem board.</p>
+
+        <!-- Milestone Unlock Progress (for locked categories) -->
+        <div id="cat-progress-container" class="progress-box hidden">
+          <div class="progress-track">
+            <div id="cat-progress-bar" class="progress-fill" style="width: 0%;"></div>
+          </div>
+          <div id="cat-progress-text" class="progress-label">Milestone Locked</div>
+        </div>
+
+        <!-- Carousel Navigation & Play CTA -->
+        <div class="carousel-controls">
+          <button id="prev-cat-btn" class="nav-arrow-btn" type="button" aria-label="Previous Category">◀</button>
+          <button id="play-cat-btn" class="btn-primary-play" type="button">PLAY ANIMALS</button>
+          <button id="next-cat-btn" class="nav-arrow-btn" type="button" aria-label="Next Category">▶</button>
+        </div>
+
+        <!-- Cosmetic Tile Backs Drawer Trigger -->
+        <button id="open-skins-btn" class="btn-secondary-drawer" type="button">
+          🎨 Customize Tile Back Emblems
+        </button>
+      </div>
+    </section>
+
+    <!-- Cosmetic Tile Backs Modal -->
+    <div id="skins-modal" class="overlay-modal hidden" role="dialog" aria-modal="true" aria-labelledby="skins-heading">
+      <div class="skins-modal-content">
+        <div class="carousel-header">
+          <h3 id="skins-heading" style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800;">Tile Back Emblems</h3>
+          <button id="close-skins-btn" class="nav-arrow-btn" style="width: 36px; height: 36px;" type="button" aria-label="Close Skins Modal">✕</button>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted);">Equip unlocked cosmetic center emblems to customize the face-down side of your tiles.</p>
+        <div id="skins-grid" class="skins-grid">
+          <!-- Populated by ui.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Post-Game "Flex Card" Modal (Trading Card / Arcade Receipt) -->
+    <div id="flex-card-modal" class="overlay-modal hidden" role="dialog" aria-modal="true" aria-labelledby="flex-title">
+      <div id="flex-card" class="flex-card-container">
+        <h2 id="flex-title" class="flex-title win">ROUND CLEARED!</h2>
+
+        <div id="flex-bitmoji" class="flex-bitmoji-wrap" aria-label="Victory Bitmoji Avatar">
+          <!-- Populated by ui.js -->
+        </div>
+
+        <div class="flex-score-hero">
+          <span class="flex-score-label">FINAL SCORE</span>
+          <div id="flex-score-val" class="flex-score-big">5,240</div>
+        </div>
+
+        <!-- Breakdown Receipt -->
+        <div class="flex-breakdown-table">
+          <div class="breakdown-row">
+            <span>Time Left Bonus</span>
+            <span id="flex-time-val">+3,240 pts (32.4s left)</span>
+          </div>
+          <div class="breakdown-row">
+            <span>Flip Efficiency Bonus</span>
+            <span id="flex-flips-val">+1,600 pts (24 flips)</span>
+          </div>
+          <div class="breakdown-row">
+            <span>Streak Multiplier Bonus</span>
+            <span id="flex-streak-val">+400 pts</span>
+          </div>
+        </div>
+
+        <!-- Milestone Unlock Toasts Area -->
+        <div id="flex-unlocks-area" style="width: 100%; display: flex; flex-direction: column; gap: 8px;"></div>
+
+        <!-- Action CTAs -->
+        <div class="flex-actions">
+          <button id="flex-share-btn" class="btn-share-snap" type="button">
+            ⚡ Share Flex Card to Story
+          </button>
+          <button id="open-leaderboard-btn" class="btn-leaderboard-open" type="button">
+            🏆 View Snapchat Leaderboards
+          </button>
+          <button id="flex-play-again-btn" class="btn-secondary-drawer" type="button" style="margin-top: 4px;">
+            ↺ Play Again / Switch Theme
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snapchat Leaderboards Drawer -->
+    <div id="leaderboard-modal" class="overlay-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lb-heading">
+      <div class="leaderboard-drawer">
+        <div class="carousel-header">
+          <h3 id="lb-heading" style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800;">Leaderboards</h3>
+          <button id="close-leaderboard-btn" class="nav-arrow-btn" style="width: 36px; height: 36px;" type="button" aria-label="Close Leaderboards">✕</button>
+        </div>
+
+        <div class="lb-tabs" role="tablist">
+          <button id="tab-friends" class="lb-tab active" type="button" role="tab" aria-selected="true">Friends</button>
+          <button id="tab-global" class="lb-tab" type="button" role="tab" aria-selected="false">Global</button>
+        </div>
+
+        <div id="leaderboard-list" class="leaderboard-list">
+          <!-- Populated by ui.js -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

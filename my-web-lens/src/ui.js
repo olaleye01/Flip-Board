@@ -29,6 +29,7 @@ export class UIManager {
     this.nextCatBtn = document.getElementById('next-cat-btn');
     this.playCatBtn = document.getElementById('play-cat-btn');
     this.skinsDrawerBtn = document.getElementById('open-skins-btn');
+    this.sandboxToggleBtn = document.getElementById('sandbox-toggle-btn');
 
     // Tile Back Skins Drawer Modal
     this.skinsModal = document.getElementById('skins-modal');
@@ -75,6 +76,18 @@ export class UIManager {
     }
     if (this.playCatBtn) {
       this.playCatBtn.addEventListener('click', () => this.startSelectedCategory());
+    }
+
+    // Sandbox Mode Toggle Button
+    if (this.sandboxToggleBtn) {
+      this.sandboxToggleBtn.addEventListener('click', () => {
+        storage.toggleSandboxMode();
+        this.updateSandboxUI();
+        this.updateCarouselView();
+        if (!this.skinsModal.classList.contains('hidden')) {
+          this.renderSkinsList();
+        }
+      });
     }
 
     // Quick restart button
@@ -195,7 +208,22 @@ export class UIManager {
   openCarousel() {
     this.carouselModal.classList.remove('hidden');
     this.hudElement.classList.add('hidden');
+    this.updateSandboxUI();
     this.updateCarouselView();
+  }
+
+  updateSandboxUI() {
+    if (!this.sandboxToggleBtn) return;
+    const isSandbox = storage.sandboxMode;
+    if (isSandbox) {
+      this.sandboxToggleBtn.className = 'sandbox-pill-btn active';
+      this.sandboxToggleBtn.innerHTML = '🧪 SANDBOX: ON';
+      this.sandboxToggleBtn.title = 'Sandbox Mode: All Categories & Skins are Unlocked for Testing. Click to toggle Standard Mode.';
+    } else {
+      this.sandboxToggleBtn.className = 'sandbox-pill-btn';
+      this.sandboxToggleBtn.innerHTML = '🔒 STANDARD';
+      this.sandboxToggleBtn.title = 'Standard Mode: Follows milestone progression. Click to toggle Sandbox Mode.';
+    }
   }
 
   navigateCarousel(direction) {
@@ -215,8 +243,9 @@ export class UIManager {
     this.catDescElem.textContent = cat.description;
 
     if (isUnlocked) {
-      this.catStatusBadge.className = 'status-badge unlocked';
-      this.catStatusBadge.textContent = 'READY TO PLAY';
+      const isSandboxUnlocked = storage.sandboxMode && cat.id >= 3;
+      this.catStatusBadge.className = isSandboxUnlocked ? 'status-badge unlocked sandbox-badge' : 'status-badge unlocked';
+      this.catStatusBadge.textContent = isSandboxUnlocked ? '🧪 SANDBOX UNLOCKED' : 'READY TO PLAY';
       this.catProgressContainer.classList.add('hidden');
       this.playCatBtn.disabled = false;
       this.playCatBtn.textContent = `PLAY ${cat.name.toUpperCase()}`;
@@ -263,7 +292,7 @@ export class UIManager {
         <div class="skin-name">${skin.name}</div>
         <div class="skin-desc">${skin.description}</div>
         <div class="skin-status">
-          ${isEquipped ? '<span class="status-equipped">✓ EQUIPPED</span>' : isUnlocked ? '<button class="btn-equip">EQUIP</button>' : `<span class="status-locked">🔒 ${progress.text}</span>`}
+          ${isEquipped ? '<span class="status-equipped">✓ EQUIPPED</span>' : isUnlocked ? `<button class="btn-equip">EQUIP</button>${storage.sandboxMode && skin.id > 0 ? '<small class="sandbox-tag">🧪 Sandbox</small>' : ''}` : `<span class="status-locked">🔒 ${progress.text}</span>`}
         </div>
       `;
 

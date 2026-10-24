@@ -115,7 +115,29 @@ export const TILE_SKINS = [
 
 class StorageManager {
   constructor() {
+    this.sandboxMode = true; // Default to sandbox mode enabled for testing
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('sandbox')) {
+        this.sandboxMode = params.get('sandbox') !== 'false' && params.get('sandbox') !== '0';
+      } else {
+        const stored = localStorage.getItem('flipboard_sandbox_mode');
+        this.sandboxMode = stored !== null ? stored === 'true' : true;
+      }
+    }
     this.data = this.load();
+  }
+
+  setSandboxMode(enabled) {
+    this.sandboxMode = enabled;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('flipboard_sandbox_mode', enabled.toString());
+    }
+  }
+
+  toggleSandboxMode() {
+    this.setSandboxMode(!this.sandboxMode);
+    return this.sandboxMode;
   }
 
   load() {
@@ -166,6 +188,7 @@ class StorageManager {
   }
 
   isCategoryUnlocked(categoryId) {
+    if (this.sandboxMode) return true;
     if (categoryId <= 2) return true;
     if (categoryId === 3) {
       // Technology: Clear in under 35s (>25.0s left)
@@ -179,6 +202,15 @@ class StorageManager {
   }
 
   getCategoryProgress(categoryId) {
+    if (this.sandboxMode) {
+      return {
+        unlocked: true,
+        ratio: 1.0,
+        text: 'Sandbox Unlocked',
+        current: 'Sandbox Active',
+        target: 'All Features Unlocked',
+      };
+    }
     if (categoryId <= 2) return { unlocked: true, ratio: 1.0, text: 'Unlocked' };
     if (categoryId === 3) {
       const bestTime = this.data.fastestClearTimeLeft;
@@ -210,6 +242,7 @@ class StorageManager {
   }
 
   isSkinUnlocked(skinId) {
+    if (this.sandboxMode) return true;
     if (skinId === 0) return true;
     if (skinId === 1) {
       // Neon Cyber Crest: 5 total wins
@@ -227,6 +260,9 @@ class StorageManager {
   }
 
   getSkinProgress(skinId) {
+    if (this.sandboxMode) {
+      return { unlocked: true, ratio: 1.0, text: 'Sandbox Unlocked' };
+    }
     if (skinId === 0) return { unlocked: true, ratio: 1.0, text: 'Default' };
     if (skinId === 1) {
       const wins = this.data.totalGamesWon;
